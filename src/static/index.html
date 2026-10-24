@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>" />
+  <title>lc-course · Recipe Agent</title>
+  <meta name="description" content="基于 LangGraph 和 RAG 的菜谱助手" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="chat-app">
+    <header class="chat-header">
+      <div>
+        <p class="eyebrow">LANGGRAPH · RAG · TOOL CALLING</p>
+        <h1>食材驱动的菜谱 Agent</h1>
+        <p class="subtitle">问食材搭配、烹饪方法或菜谱，答案优先基于知识库并标注来源。</p>
+      </div>
+      <a class="docs-link" href="/docs">API 文档</a>
+    </header>
+
+    <section id="messages" class="messages" aria-live="polite" aria-label="对话记录">
+      <div class="welcome">
+        <strong>你好，我是你的菜谱助手。</strong>
+        <span>试试问：“鸡蛋和番茄可以做什么？怎么做？”</span>
+      </div>
+    </section>
+
+    <form id="chat-form" class="composer">
+      <label class="sr-only" for="message-input">输入食材或烹饪问题</label>
+      <textarea id="message-input" name="message" rows="2" maxlength="4000"
+        placeholder="输入食材或烹饪问题…" required></textarea>
+      <div id="image-preview" class="image-preview" hidden>
+        <img id="image-preview-thumb" alt="待发送的图片预览" />
+        <button id="remove-image" class="remove-image" type="button" aria-label="移除已选图片">×</button>
+      </div>
+      <div class="composer-actions">
+        <span id="status" role="status">对话记录保存在此浏览器的会话中</span>
+        <div>
+          <input id="image-input" class="sr-only" type="file" accept="image/*"
+            aria-label="上传图片" />
+          <button id="image-button" class="secondary-button" type="button">上传图片</button>
+          <button id="clear-history" class="secondary-button" type="button">清空对话</button>
+          <button id="send-button" class="send-button" type="submit">发送</button>
+        </div>
+      </div>
+    </form>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>

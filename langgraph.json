@@ -1,0 +1,7 @@
+{
+    "source": {"kind": "uv", "root": "."},
+    "graphs": {
+        "chef_agent": "./src/agents/personal_chef.py:agent"
+    },
+    "env": ".env"
+}
