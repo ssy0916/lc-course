@@ -57,6 +57,7 @@ DASHSCOPE_API_KEY=你的DashScope密钥
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 TAVILY_API_KEY=你的Tavily密钥
 EMBEDDING_MODEL=text-embedding-v4
+KNOWLEDGE_INGEST_API_KEY=设置一个本地随机密钥
 
 # OSS 签名接口所需；访问密钥使用阿里云 SDK 支持的环境变量名
 OSS_ACCESS_KEY_ID=你的阿里云AccessKeyId
@@ -65,7 +66,7 @@ OSS_BUCKET=你的Bucket名称
 OSS_ENDPOINT=oss-cn-beijing.aliyuncs.com
 ```
 
-`DASHSCOPE_BASE_URL` 用于聊天模型和 Embeddings；`EMBEDDING_MODEL` 默认为 `text-embedding-v4`。文档向量与会话分别保存在 `resources/recipe_knowledge.db` 和 `resources/personal_chef.db`。`OSS_ENDPOINT` 默认为 `oss-cn-beijing.aliyuncs.com`；OSS 凭证未配置时 OSS 路由不会挂载。
+`DASHSCOPE_BASE_URL` 用于聊天模型和 Embeddings；`EMBEDDING_MODEL` 默认为 `text-embedding-v4`。文档向量与会话分别保存在 `resources/recipe_knowledge.db` 和 `resources/personal_chef.db`。`KNOWLEDGE_INGEST_API_KEY` 用于保护知识库导入接口；未配置时该接口返回 503 并保持关闭。`OSS_ENDPOINT` 默认为 `oss-cn-beijing.aliyuncs.com`；OSS 凭证未配置时 OSS 路由不会挂载。
 
 ### 3. 导入示例知识库（可选但推荐）
 
@@ -100,7 +101,7 @@ API 路由前缀为 `/api/v1`：
 | `POST` | `/chat/stream` | SSE 流式多轮对话；事件类型为 `token`、`done` 或 `error`。 |
 | `GET` | `/chat/messages?thread_id=...` | 获取指定会话的历史消息。 |
 | `DELETE` | `/chat/messages?thread_id=...` | 清空指定会话的历史消息。 |
-| `POST` | `/knowledge/documents` | 切分、向量化并导入一篇知识文档；同一 `source` 再次导入会替换旧内容。 |
+| `POST` | `/knowledge/documents` | 需提供 `X-Knowledge-API-Key`；切分、向量化并导入文档，同一 `source` 再次导入会替换旧内容。 |
 | `GET` | `/oss/presign?filename=...` | 获取 OSS 上传签名 URL；仅在 OSS 配置可用时挂载。 |
 
 ### 导入知识文档
@@ -109,13 +110,14 @@ API 路由前缀为 `/api/v1`：
 
 ```bash
 curl -X POST http://127.0.0.1:8001/api/v1/knowledge/documents \
+  -H "X-Knowledge-API-Key: 你的本地导入密钥" \
   -H "Content-Type: application/json" \
   -d "{\"source\":\"番茄炒蛋做法.md\",\"content\":\"鸡蛋打散后炒至凝固并盛出。番茄炒软后加入鸡蛋，调味翻炒即可。\"}"
 ```
 
-导入接口返回切片数量。Agent 会把用户问题向量化，在 SQLite 中按余弦相似度检索最相关的切片；菜谱、食材搭配和烹饪问题优先使用知识库，回答中应包含 `[来源: ...]`。知识库没有相关内容时，Agent 可以调用 Tavily 联网补充。知识库为空时无需先配置 Embeddings；首次导入和检索需要 DashScope API Key。
+导入接口返回切片数量。Agent 会把用户问题向量化，在 SQLite 中按余弦相似度检索最相关的切片；菜谱、食材搭配和烹饪问题优先使用知识库，回答中应包含 `[来源: ...]`。知识库没有相关内容时，Agent 可以调用 Tavily 联网补充。检索结果按不可信内容处理，提示词要求忽略其中嵌入的指令，工具输出也会转义伪造的来源标记。知识库为空时无需先配置 Embeddings；首次导入和检索需要 DashScope API Key。
 
-文档导入 API 当前用于本地演示，公开部署前应为它增加认证和访问控制。
+知识库导入 API 使用恒定时间比较验证 API Key；请为各环境单独设置密钥，并通过 HTTPS 和服务端密钥管理提供给受信任的导入端，勿嵌入公开前端。
 
 聊天请求示例：
 
@@ -167,4 +169,4 @@ curl -X POST http://127.0.0.1:8001/api/v1/knowledge/documents \
 uv run python -m unittest discover -s tests -v
 ```
 
-测试使用内存替身验证向量排序、文档替换、SSE 对话响应和历史接口，不需要调用真实模型或搜索服务。
+测试使用内存替身验证检索 Top-1 来源命中、文档替换、无结果边界、知识库导入鉴权、来源标记转义、SSE 对话响应和历史接口，不需要调用真实模型或搜索服务。

@@ -56,6 +56,26 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0]["content"], "鸡蛋蒸熟。")
 
+    def test_retrieval_evaluation_cases_return_expected_sources_at_rank_one(self) -> None:
+        self.store.ingest("eggs.md", "鸡蛋可以炒制或煮熟。")
+        self.store.ingest("beef.md", "牛肉适合炖煮。")
+        evaluation_cases = [
+            ("鸡蛋有哪些做法？", "eggs.md"),
+            ("牛肉怎么做？", "beef.md"),
+        ]
+
+        hits = 0
+        for query, expected_source in evaluation_cases:
+            results = self.store.search(query, limit=1)
+            hits += bool(results and results[0]["source"] == expected_source)
+
+        self.assertEqual(hits, len(evaluation_cases))
+
+    def test_search_returns_no_results_for_empty_store_or_blank_query(self) -> None:
+        self.assertEqual(self.store.search("鸡蛋"), [])
+        self.store.ingest("eggs.md", "鸡蛋可以炒制。")
+        self.assertEqual(self.store.search("   "), [])
+
 
 if __name__ == "__main__":
     unittest.main()
